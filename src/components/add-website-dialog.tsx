@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Globe, CheckCircle, AlertCircle, Check } from 'lucide-react'
+import { Loader2, Globe, CheckCircle, AlertCircle, Check, Trash2 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 interface AddWebsiteDialogProps {
@@ -36,6 +36,7 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
   const [existingSites, setExistingSites] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [removingSite, setRemovingSite] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const supabase = createClient()
@@ -111,6 +112,39 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
     }
   }
 
+  const handleRemoveSite = async (siteUrl: string) => {
+    setRemovingSite(siteUrl)
+    setError(null)
+    setSuccess(false)
+
+    try {
+      const response = await fetch('/api/websites', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ siteUrl }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to remove website')
+      }
+
+      setSuccess(true)
+      setTimeout(() => {
+        onOpenChange(false)
+        // Refresh the page to show updated leaderboard
+        window.location.reload()
+      }, 2000)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setRemovingSite(null)
+    }
+  }
+
   const handleSignIn = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -126,12 +160,12 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
       <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-700">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl font-black text-white">
-            ADD YOUR <span className="gradient-text">WEBSITE</span>
+            <span className="gradient-text">MANAGE</span> YOUR SITES
           </DialogTitle>
           <DialogDescription className="text-slate-400">
             {!user
               ? 'Sign in with Google to connect your Search Console account'
-              : 'Select a website from your Google Search Console to add to the leaderboard'}
+              : 'Add or remove websites from the global leaderboard'}
           </DialogDescription>
         </DialogHeader>
 
@@ -158,9 +192,9 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
             </div>
           ) : success ? (
             <div className="text-center py-12">
-              <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
+              <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4 animate-pulse" />
               <p className="text-lg font-bold text-white mb-2">Success!</p>
-              <p className="text-sm text-slate-400">Your website has been added to the leaderboard</p>
+              <p className="text-sm text-slate-400">Leaderboard updated successfully</p>
             </div>
           ) : error ? (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
@@ -225,9 +259,22 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
                         </div>
                       </div>
                       {isAlreadyAdded ? (
-                        <div className="ml-4 px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                          <span className="text-xs font-mono text-slate-600 uppercase tracking-wider">Added</span>
-                        </div>
+                        <Button
+                          onClick={() => handleRemoveSite(site.siteUrl)}
+                          disabled={removingSite === site.siteUrl}
+                          size="sm"
+                          variant="outline"
+                          className="ml-4 border-2 border-red-500/50 hover:border-red-500 hover:bg-red-500/10 text-red-400 hover:text-red-300 font-bold transition-all duration-300 group"
+                        >
+                          {removingSite === site.siteUrl ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Trash2 className="h-4 w-4 mr-1 group-hover:animate-pulse" />
+                              Remove
+                            </>
+                          )}
+                        </Button>
                       ) : (
                         <Button
                           onClick={() => handleAddSite(site.siteUrl)}

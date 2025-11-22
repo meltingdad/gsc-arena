@@ -206,3 +206,69 @@ export async function POST(request: Request) {
     )
   }
 }
+
+// Remove a website from the leaderboard
+export async function DELETE(request: Request) {
+  try {
+    const supabase = await createClient()
+
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { siteUrl } = await request.json()
+
+    if (!siteUrl) {
+      return NextResponse.json({ error: 'Site URL is required' }, { status: 400 })
+    }
+
+    // Extract clean domain from siteUrl
+    const domain = extractDomain(siteUrl)
+
+    // Check if website exists and belongs to the user
+    const { data: website, error: findError } = await supabase
+      .from('websites')
+      .select('id, user_id')
+      .eq('domain', domain)
+      .single()
+
+    if (findError || !website) {
+      return NextResponse.json(
+        { error: 'Website not found on leaderboard' },
+        { status: 404 }
+      )
+    }
+
+    // Verify ownership
+    if (website.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'You can only remove your own websites' },
+        { status: 403 }
+      )
+    }
+
+    // Delete the website (metrics will be cascade deleted)
+    const { error: deleteError } = await supabase
+      .from('websites')
+      .delete()
+      .eq('id', website.id)
+
+    if (deleteError) {
+      throw deleteError
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Website removed from leaderboard successfully!',
+    })
+  } catch (error: any) {
+    console.error('Error removing website:', error)
+    return NextResponse.json(
+      { error: 'Failed to remove website', details: error.message },
+      { status: 500 }
+    )
+  }
+}

@@ -119,7 +119,7 @@ export function Navbar() {
                     size="sm"
                     className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold font-mono uppercase tracking-wide transition-all duration-300 hover:glow-cyan"
                   >
-                    Add Site
+                    Add/Remove Site
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
