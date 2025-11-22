@@ -112,7 +112,7 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
     <div className="space-y-3">
       {/* Table Header */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 backdrop-blur-sm">
-        <div className="grid grid-cols-[70px_1fr_110px_120px_110px_100px_130px] gap-4 items-center">
+        <div className="grid grid-cols-[70px_minmax(180px,300px)_repeat(5,1fr)] gap-4 items-center">
           <div className="font-mono uppercase text-xs tracking-wider text-slate-400">Rank</div>
           <div className="font-mono uppercase text-xs tracking-wider text-slate-400">Domain</div>
           <div className="text-right">
@@ -122,10 +122,10 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
             <SortButton field="impressions" label="Views" icon={Eye} />
           </div>
           <div className="text-right">
-            <SortButton field="ctr" label="CTR" icon={TrendingUp} />
+            <SortButton field="ctr" label="AVG CTR" icon={TrendingUp} />
           </div>
           <div className="text-right">
-            <SortButton field="position" label="Pos" icon={Target} />
+            <SortButton field="position" label="AVG Position" icon={Target} />
           </div>
           <div className="text-right font-mono uppercase text-xs tracking-wider text-slate-400 whitespace-nowrap">
             Last Update
@@ -150,7 +150,7 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
               className="group bg-slate-800/30 hover:bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/50 rounded-lg px-4 py-3.5 backdrop-blur-sm transition-all duration-200 hover:scale-[1.01] hover:glow-cyan animate-count-up"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <div className="grid grid-cols-[70px_1fr_110px_120px_110px_100px_130px] gap-4 items-center">
+              <div className="grid grid-cols-[70px_minmax(180px,300px)_repeat(5,1fr)] gap-4 items-center">
                 {/* Rank Badge */}
                 <div className="flex justify-center">{getRankBadge(entry.rank)}</div>
 
