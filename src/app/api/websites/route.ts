@@ -226,21 +226,32 @@ export async function DELETE(request: Request) {
     }
 
     // Extract clean domain from siteUrl
-    const domain = extractDomain(siteUrl)
+    const cleanedDomain = extractDomain(siteUrl)
 
     // Check if website exists and belongs to the user
-    const { data: website, error: findError } = await supabase
+    // Try both cleaned domain and original siteUrl to handle old/new data
+    const { data: websites, error: findError } = await supabase
       .from('websites')
-      .select('id, user_id')
-      .eq('domain', domain)
-      .single()
+      .select('id, user_id, domain')
+      .or(`domain.eq.${cleanedDomain},domain.eq.${siteUrl},site_url.eq.${siteUrl}`)
 
-    if (findError || !website) {
+    if (findError) {
+      console.error('Error finding website:', findError)
+      return NextResponse.json(
+        { error: 'Database error', details: findError.message },
+        { status: 500 }
+      )
+    }
+
+    if (!websites || websites.length === 0) {
+      console.error('Website not found. Searched for:', { cleanedDomain, siteUrl })
       return NextResponse.json(
         { error: 'Website not found on leaderboard' },
         { status: 404 }
       )
     }
+
+    const website = websites[0]
 
     // Verify ownership
     if (website.user_id !== user.id) {
