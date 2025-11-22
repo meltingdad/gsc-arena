@@ -228,11 +228,13 @@ export function Hero() {
                           <div>
                             <p className="text-xs font-mono text-slate-400 uppercase tracking-wider">Top Performer</p>
                             <h3 className="text-2xl font-bold text-white mt-1 font-display">
-                              <span className={stats.topPerformer.anonymous ? 'blur-sm select-none' : ''}>
-                                {stats.topPerformer.anonymous ? '••••••••••••' : stats.topPerformer.domain}
-                              </span>
-                              {stats.topPerformer.anonymous && (
-                                <span className="ml-2 text-xs text-purple-400 font-mono">(ANONYMOUS)</span>
+                              {stats.topPerformer.anonymous ? (
+                                <>
+                                  <span className="blur-sm select-none">••••••••••••</span>
+                                  <span className="ml-2 text-xs text-purple-400 font-mono">(ANONYMOUS)</span>
+                                </>
+                              ) : (
+                                stats.topPerformer.domain
                               )}
                             </h3>
                           </div>

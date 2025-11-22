@@ -85,15 +85,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Site URL is required' }, { status: 400 })
     }
 
-    // Extract clean domain from siteUrl (removes sc-domain:, https://, www., etc.)
-    const domain = extractDomain(siteUrl)
+    // For anonymous sites, we'll use a UUID for domain/site_url
+    // For public sites, extract the clean domain
+    const domain = anonymous ? crypto.randomUUID() : extractDomain(siteUrl)
+    const storedSiteUrl = anonymous ? crypto.randomUUID() : siteUrl
 
-    // Check if website already exists
+    // Check if website already exists (check by original_site_url to catch both public and anonymous)
     const { data: existingWebsite } = await supabase
       .from('websites')
       .select('id')
-      .eq('domain', domain)
-      .single()
+      .or(`original_site_url.eq.${siteUrl},domain.eq.${extractDomain(siteUrl)}`)
+      .maybeSingle()
 
     if (existingWebsite) {
       return NextResponse.json(
@@ -162,7 +164,8 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         domain,
-        site_url: siteUrl,
+        site_url: storedSiteUrl,
+        original_site_url: siteUrl, // Always store original for matching/removal
         anonymous,
       })
       .select()
@@ -232,11 +235,11 @@ export async function DELETE(request: Request) {
     const cleanedDomain = extractDomain(siteUrl)
 
     // Check if website exists and belongs to the user
-    // Try both cleaned domain and original siteUrl to handle old/new data
+    // Search by original_site_url (for anonymous sites), cleaned domain, or site_url (for old data)
     const { data: websites, error: findError } = await supabase
       .from('websites')
       .select('id, user_id, domain')
-      .or(`domain.eq.${cleanedDomain},domain.eq.${siteUrl},site_url.eq.${siteUrl}`)
+      .or(`original_site_url.eq.${siteUrl},domain.eq.${cleanedDomain},domain.eq.${siteUrl},site_url.eq.${siteUrl}`)
 
     if (findError) {
       console.error('Error finding website:', findError)

@@ -154,11 +154,13 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
 
                 {/* Domain */}
                 <div className="font-display font-bold text-white text-lg truncate group-hover:text-cyan-400 transition-colors">
-                  <span className={entry.anonymous ? 'blur-sm select-none' : ''}>
-                    {entry.anonymous ? '••••••••••••' : entry.domain}
-                  </span>
-                  {entry.anonymous && (
-                    <span className="ml-2 text-xs text-purple-400 font-mono">(ANONYMOUS)</span>
+                  {entry.anonymous ? (
+                    <>
+                      <span className="blur-sm select-none">••••••••••••</span>
+                      <span className="ml-2 text-xs text-purple-400 font-mono">(ANONYMOUS)</span>
+                    </>
+                  ) : (
+                    entry.domain
                   )}
                 </div>
 

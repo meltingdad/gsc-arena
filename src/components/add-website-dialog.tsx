@@ -52,26 +52,27 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
     setError(null)
 
     try {
-      // Fetch both GSC sites and existing leaderboard sites in parallel
-      const [gscResponse, leaderboardResponse] = await Promise.all([
+      // Fetch both GSC sites and user's existing sites in parallel
+      const [gscResponse, myWebsitesResponse] = await Promise.all([
         fetch('/api/gsc/sites'),
-        fetch('/api/websites'),
+        fetch('/api/my-websites'),
       ])
 
       const gscData = await gscResponse.json()
-      const leaderboardData = await leaderboardResponse.json()
+      const myWebsitesData = await myWebsitesResponse.json()
 
       if (!gscResponse.ok) {
         throw new Error(gscData.error || 'Failed to fetch sites')
       }
 
-      // Extract clean domains from leaderboard sites for comparison
-      const existingDomains = new Set<string>(
-        (leaderboardData.data || []).map((site: any) => cleanDomain(site.domain))
+      // Extract original_site_url from user's sites for comparison
+      // This works for both public and anonymous submissions
+      const existingSiteUrls = new Set<string>(
+        (myWebsitesData.data || []).map((site: any) => site.original_site_url || site.domain)
       )
 
       setSites(gscData.sites || [])
-      setExistingSites(existingDomains)
+      setExistingSites(existingSiteUrls)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -217,7 +218,7 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
           ) : (
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {sites.map((site) => {
-                const isAlreadyAdded = existingSites.has(cleanDomain(site.siteUrl))
+                const isAlreadyAdded = existingSites.has(site.siteUrl)
 
                 return (
                   <div
