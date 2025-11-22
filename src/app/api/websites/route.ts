@@ -9,6 +9,7 @@ export async function GET() {
     const supabase = await createClient()
 
     // Fetch all websites with their latest metrics
+    // Note: Using LEFT JOIN to include websites even without metrics for debugging
     const { data: websites, error } = await supabase
       .from('websites')
       .select(`
@@ -27,17 +28,30 @@ export async function GET() {
         )
       `)
       .order('created_at', { ascending: false })
+      .order('last_updated', { foreignTable: 'metrics', ascending: false })
 
     if (error) {
       throw error
     }
+
+    console.log(`Fetched ${websites?.length || 0} websites from database`)
 
     // Format data for leaderboard
     const leaderboardData = (websites || [])
       .map((website: any) => {
         // Get the latest metric (metrics are already ordered by last_updated desc in the query)
         const latestMetric = website.metrics?.[0]
-        if (!latestMetric) return null
+
+        // Log websites without metrics for debugging
+        if (!latestMetric) {
+          console.warn('Website without metrics:', {
+            id: website.id,
+            domain: website.domain,
+            site_url: website.site_url,
+            user_id: website.user_id,
+          })
+          return null
+        }
 
         return {
           id: website.id,
@@ -56,6 +70,8 @@ export async function GET() {
         ...entry,
         rank: index + 1,
       }))
+
+    console.log(`Returning ${leaderboardData.length} websites with metrics to leaderboard`)
 
     return NextResponse.json({ data: leaderboardData })
   } catch (error: any) {
