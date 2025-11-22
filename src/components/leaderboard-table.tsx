@@ -117,13 +117,13 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
             <SortButton field="clicks" label="Clicks" icon={MousePointer} />
           </div>
           <div className="text-right">
-            <SortButton field="impressions" label="Views" icon={Eye} />
+            <SortButton field="impressions" label="Impressions" icon={Eye} />
           </div>
           <div className="text-right">
-            <SortButton field="ctr" label="CTR" icon={TrendingUp} />
+            <SortButton field="ctr" label="Average CTR" icon={TrendingUp} />
           </div>
           <div className="text-right">
-            <SortButton field="position" label="Position" icon={Target} />
+            <SortButton field="position" label="Average Position" icon={Target} />
           </div>
           <div className="text-right font-mono uppercase text-xs tracking-wider text-slate-400">
             Updated
