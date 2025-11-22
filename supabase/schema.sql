@@ -28,6 +28,19 @@ CREATE TABLE IF NOT EXISTS metrics (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create daily_metrics table for time-series data
+CREATE TABLE IF NOT EXISTS daily_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  website_id UUID REFERENCES websites(id) ON DELETE CASCADE NOT NULL,
+  date DATE NOT NULL,
+  clicks INTEGER DEFAULT 0 NOT NULL,
+  impressions INTEGER DEFAULT 0 NOT NULL,
+  ctr DECIMAL(5,2) DEFAULT 0 NOT NULL,
+  position DECIMAL(5,2) DEFAULT 0 NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  UNIQUE(website_id, date)
+);
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_websites_user_id ON websites(user_id);
 CREATE INDEX IF NOT EXISTS idx_websites_domain ON websites(domain);
@@ -37,10 +50,14 @@ CREATE INDEX IF NOT EXISTS idx_websites_site_hash ON websites(site_hash);
 CREATE INDEX IF NOT EXISTS idx_websites_favicon_url ON websites(favicon_url) WHERE favicon_url IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_metrics_website_id ON metrics(website_id);
 CREATE INDEX IF NOT EXISTS idx_metrics_last_updated ON metrics(last_updated DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_metrics_website_id ON daily_metrics(website_id);
+CREATE INDEX IF NOT EXISTS idx_daily_metrics_date ON daily_metrics(date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_metrics_website_date ON daily_metrics(website_id, date DESC);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE websites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_metrics ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for websites
 CREATE POLICY "Users can view all websites"
@@ -80,6 +97,41 @@ CREATE POLICY "Users can update metrics for their own websites"
     EXISTS (
       SELECT 1 FROM websites
       WHERE websites.id = metrics.website_id
+      AND websites.user_id = auth.uid()
+    )
+  );
+
+-- RLS Policies for daily_metrics
+CREATE POLICY "Users can view all daily metrics"
+  ON daily_metrics FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can insert daily metrics for their own websites"
+  ON daily_metrics FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM websites
+      WHERE websites.id = daily_metrics.website_id
+      AND websites.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update daily metrics for their own websites"
+  ON daily_metrics FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM websites
+      WHERE websites.id = daily_metrics.website_id
+      AND websites.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete daily metrics for their own websites"
+  ON daily_metrics FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM websites
+      WHERE websites.id = daily_metrics.website_id
       AND websites.user_id = auth.uid()
     )
   );

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowUpDown, TrendingUp, Eye, MousePointer, Target, ExternalLink } from 'lucide-react'
+import { ArrowUpDown, TrendingUp, Eye, MousePointer, Target, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { getDomainUrl } from '@/lib/utils/domain'
+import { TimeSeriesChart } from './time-series-chart'
 
 type SortField = 'clicks' | 'impressions' | 'ctr' | 'position'
 type SortDirection = 'asc' | 'desc'
@@ -28,6 +29,7 @@ interface LeaderboardTableProps {
 export function LeaderboardTable({ data }: LeaderboardTableProps) {
   const [sortField, setSortField] = useState<SortField>('clicks')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -36,6 +38,10 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
       setSortField(field)
       setSortDirection('desc')
     }
+  }
+
+  const toggleExpand = (id: string) => {
+    setExpandedRow(expandedRow === id ? null : id)
   }
 
   const sortedData = [...data].sort((a, b) => {
@@ -112,7 +118,7 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
     <div className="space-y-3">
       {/* Table Header */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 backdrop-blur-sm">
-        <div className="grid grid-cols-[70px_minmax(180px,300px)_repeat(5,1fr)] gap-4 items-center">
+        <div className="grid grid-cols-[70px_minmax(180px,300px)_repeat(5,1fr)_40px] gap-4 items-center">
           <div className="font-mono uppercase text-xs tracking-wider text-slate-400">Rank</div>
           <div className="font-mono uppercase text-xs tracking-wider text-slate-400">Domain</div>
           <div className="text-right">
@@ -130,6 +136,9 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
           <div className="text-right font-mono uppercase text-xs tracking-wider text-slate-400 whitespace-nowrap">
             Last Update
           </div>
+          <div className="text-center font-mono uppercase text-xs tracking-wider text-slate-400">
+            Chart
+          </div>
         </div>
       </div>
 
@@ -144,13 +153,21 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
             </div>
           </div>
         ) : (
-          sortedData.map((entry, index) => (
-            <div
-              key={entry.id}
-              className="group bg-slate-800/30 hover:bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/50 rounded-lg px-4 py-3.5 backdrop-blur-sm transition-all duration-200 hover:scale-[1.01] hover:glow-cyan animate-count-up"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className="grid grid-cols-[70px_minmax(180px,300px)_repeat(5,1fr)] gap-4 items-center">
+          sortedData.map((entry, index) => {
+            const isExpanded = expandedRow === entry.id
+            return (
+              <div
+                key={entry.id}
+                className="bg-slate-800/30 border border-slate-700/50 rounded-lg backdrop-blur-sm transition-all duration-200 animate-count-up overflow-hidden"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div
+                  className={`group px-4 py-3.5 cursor-pointer transition-all duration-200 ${
+                    isExpanded ? 'bg-slate-800/60' : 'hover:bg-slate-800/60 hover:border-cyan-500/50 hover:scale-[1.01] hover:glow-cyan'
+                  }`}
+                  onClick={() => toggleExpand(entry.id)}
+                >
+                  <div className="grid grid-cols-[70px_minmax(180px,300px)_repeat(5,1fr)_40px] gap-4 items-center">
                 {/* Rank Badge */}
                 <div className="flex justify-center">{getRankBadge(entry.rank)}</div>
 
@@ -166,6 +183,7 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
                       href={getDomainUrl(entry.domain)}
                       target="_blank"
                       rel="dofollow noopener"
+                      onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-2 truncate hover:text-cyan-400 transition-colors group/link cursor-pointer min-w-0"
                     >
                       {entry.faviconUrl && (
@@ -218,9 +236,38 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
                     {formatDistanceToNow(new Date(entry.lastUpdated), { addSuffix: true })}
                   </div>
                 </div>
+
+                {/* Expand/Collapse Button */}
+                <div className="flex justify-center">
+                  {isExpanded ? (
+                    <ChevronUp className="h-5 w-5 text-cyan-400" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                  )}
+                </div>
               </div>
             </div>
-          ))
+
+            {/* Expanded Chart Section */}
+            {isExpanded && (
+              <div className="px-4 pb-4 border-t border-slate-700/50">
+                <div className="pt-4">
+                  <div className="mb-3">
+                    <h3 className="font-display text-lg font-bold text-white flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-cyan-400" />
+                      12-Month Performance
+                    </h3>
+                    <p className="text-xs text-slate-400 font-mono mt-1">
+                      Historical trends and metrics analysis
+                    </p>
+                  </div>
+                  <TimeSeriesChart websiteId={entry.id} />
+                </div>
+              </div>
+            )}
+          </div>
+            )
+          })
         )}
       </div>
     </div>

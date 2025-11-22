@@ -229,6 +229,49 @@ export async function POST(request: Request) {
       throw metricsError
     }
 
+    // Fetch daily data for the last 12 months for time-series charts
+    const twelveMonthsAgo = new Date()
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
+
+    try {
+      const dailyResponse = await searchconsole.searchanalytics.query({
+        siteUrl,
+        requestBody: {
+          startDate: formatDate(twelveMonthsAgo),
+          endDate: formatDate(endDate),
+          dimensions: ['date'],
+        },
+      })
+
+      const dailyRows = dailyResponse.data.rows || []
+
+      // Prepare daily metrics for bulk insert
+      const dailyMetrics = dailyRows.map((row: any) => ({
+        website_id: website.id,
+        date: row.keys![0], // Date is the first dimension
+        clicks: row.clicks || 0,
+        impressions: row.impressions || 0,
+        ctr: row.ctr ? row.ctr * 100 : 0, // Convert to percentage
+        position: row.position || 0,
+      }))
+
+      // Insert daily metrics in bulk
+      if (dailyMetrics.length > 0) {
+        const { error: dailyMetricsError } = await supabase
+          .from('daily_metrics')
+          .insert(dailyMetrics)
+
+        if (dailyMetricsError) {
+          console.error('Error inserting daily metrics:', dailyMetricsError)
+          // Don't fail the entire request if daily metrics fail
+          // The 28-day summary is already created
+        }
+      }
+    } catch (dailyError: any) {
+      console.error('Error fetching daily metrics:', dailyError)
+      // Don't fail the entire request if daily metrics fail
+    }
+
     return NextResponse.json({
       success: true,
       website: {
