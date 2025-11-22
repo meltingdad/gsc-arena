@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowUpDown, TrendingUp, Eye, MousePointer, Target } from 'lucide-react'
+import { ArrowUpDown, TrendingUp, Eye, MousePointer, Target, ExternalLink } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { getDomainUrl } from '@/lib/utils/domain'
 
 type SortField = 'clicks' | 'impressions' | 'ctr' | 'position'
 type SortDirection = 'asc' | 'desc'
@@ -154,14 +155,19 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
                 <div>{getRankBadge(entry.rank)}</div>
 
                 {/* Domain */}
-                <div className="flex items-center gap-2 font-display font-bold text-white text-lg truncate group-hover:text-cyan-400 transition-colors">
+                <div className="flex items-center gap-2 font-display font-bold text-white text-lg">
                   {entry.anonymous ? (
                     <>
                       <span className="blur-sm select-none">••••••••••••</span>
                       <span className="ml-2 text-xs text-purple-400 font-mono">(ANONYMOUS)</span>
                     </>
                   ) : (
-                    <>
+                    <a
+                      href={getDomainUrl(entry.domain)}
+                      target="_blank"
+                      rel="noopener"
+                      className="flex items-center gap-2 truncate hover:text-cyan-400 transition-colors group/link cursor-pointer"
+                    >
                       {entry.faviconUrl && (
                         <img
                           src={entry.faviconUrl}
@@ -174,7 +180,8 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
                         />
                       )}
                       <span className="truncate">{entry.domain}</span>
-                    </>
+                      <ExternalLink className="h-4 w-4 flex-shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                    </a>
                   )}
                 </div>
 

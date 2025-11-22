@@ -35,3 +35,24 @@ export function cleanDomain(domain: string): string {
 export function extractDomain(siteUrl: string): string {
   return cleanDomain(siteUrl)
 }
+
+/**
+ * Constructs a full HTTPS URL from a clean domain
+ * Used for creating clickable links to websites
+ *
+ * @param domain - The clean domain name (e.g., 'example.com')
+ * @returns Full HTTPS URL (e.g., 'https://example.com')
+ *
+ * @example
+ * getDomainUrl('example.com') // 'https://example.com'
+ * getDomainUrl('subdomain.example.com') // 'https://subdomain.example.com'
+ */
+export function getDomainUrl(domain: string): string {
+  if (!domain) return ''
+
+  // Ensure the domain is clean (no protocols, www, etc.)
+  const cleanedDomain = cleanDomain(domain)
+
+  // Return with https:// prefix
+  return `https://${cleanedDomain}`
+}
