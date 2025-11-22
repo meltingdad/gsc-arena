@@ -18,38 +18,68 @@ export async function GET(request: Request) {
       const providerRefreshToken = data.session.provider_refresh_token
       const userId = data.session.user.id
 
+      console.log('Auth callback - User ID:', userId)
+      console.log('Auth callback - Has provider token:', !!providerToken)
+      console.log('Auth callback - Has refresh token:', !!providerRefreshToken)
+
       // Store Google OAuth tokens in user_tokens table if they exist
       if (providerToken && userId) {
-        // Check if user_tokens record exists
-        const { data: existingTokens } = await supabase
-          .from('user_tokens')
-          .select('id')
-          .eq('user_id', userId)
-          .single()
-
-        if (existingTokens) {
-          // Update existing tokens
-          await supabase
+        try {
+          // Check if user_tokens record exists
+          const { data: existingTokens, error: selectError } = await supabase
             .from('user_tokens')
-            .update({
-              google_access_token: providerToken,
-              google_refresh_token: providerRefreshToken,
-              updated_at: new Date().toISOString(),
-            })
+            .select('id')
             .eq('user_id', userId)
-        } else {
-          // Insert new tokens
-          await supabase
-            .from('user_tokens')
-            .insert({
-              user_id: userId,
-              google_access_token: providerToken,
-              google_refresh_token: providerRefreshToken,
-            })
+            .maybeSingle()
+
+          if (selectError) {
+            console.error('Error checking existing tokens:', selectError)
+          }
+
+          if (existingTokens) {
+            // Update existing tokens
+            const { error: updateError } = await supabase
+              .from('user_tokens')
+              .update({
+                google_access_token: providerToken,
+                google_refresh_token: providerRefreshToken,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('user_id', userId)
+
+            if (updateError) {
+              console.error('Error updating tokens:', updateError)
+            } else {
+              console.log('Tokens updated successfully')
+            }
+          } else {
+            // Insert new tokens
+            const { error: insertError } = await supabase
+              .from('user_tokens')
+              .insert({
+                user_id: userId,
+                google_access_token: providerToken,
+                google_refresh_token: providerRefreshToken,
+              })
+
+            if (insertError) {
+              console.error('Error inserting tokens:', insertError)
+            } else {
+              console.log('Tokens inserted successfully')
+            }
+          }
+        } catch (err) {
+          console.error('Exception storing tokens:', err)
         }
+      } else {
+        console.warn('Missing provider token or user ID - tokens not stored')
+        console.log('Provider token exists:', !!providerToken)
+        console.log('User ID exists:', !!userId)
       }
 
       return NextResponse.redirect(`${origin}${next}`)
+    } else {
+      console.error('Error exchanging code for session:', error)
     }
   }
 
