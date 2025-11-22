@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Globe, CheckCircle, AlertCircle } from 'lucide-react'
+import { Loader2, Globe, CheckCircle, AlertCircle, Check } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 interface AddWebsiteDialogProps {
@@ -26,8 +26,14 @@ interface GSCSite {
   permissionLevel: string
 }
 
+interface LeaderboardSite {
+  domain: string
+  site_url: string
+}
+
 export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogProps) {
   const [sites, setSites] = useState<GSCSite[]>([])
+  const [existingSites, setExistingSites] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,14 +51,26 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
     setError(null)
 
     try {
-      const response = await fetch('/api/gsc/sites')
-      const data = await response.json()
+      // Fetch both GSC sites and existing leaderboard sites in parallel
+      const [gscResponse, leaderboardResponse] = await Promise.all([
+        fetch('/api/gsc/sites'),
+        fetch('/api/websites'),
+      ])
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch sites')
+      const gscData = await gscResponse.json()
+      const leaderboardData = await leaderboardResponse.json()
+
+      if (!gscResponse.ok) {
+        throw new Error(gscData.error || 'Failed to fetch sites')
       }
 
-      setSites(data.sites || [])
+      // Extract clean domains from leaderboard sites for comparison
+      const existingDomains = new Set<string>(
+        (leaderboardData.data || []).map((site: any) => cleanDomain(site.domain))
+      )
+
+      setSites(gscData.sites || [])
+      setExistingSites(existingDomains)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -164,39 +182,70 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
             </div>
           ) : (
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              {sites.map((site) => (
-                <div
-                  key={site.siteUrl}
-                  className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 hover:border-cyan-500/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Globe className="h-4 w-4 text-cyan-400 flex-shrink-0" />
-                        <p className="font-mono text-sm text-white truncate">{cleanDomain(site.siteUrl)}</p>
+              {sites.map((site) => {
+                const isAlreadyAdded = existingSites.has(cleanDomain(site.siteUrl))
+
+                return (
+                  <div
+                    key={site.siteUrl}
+                    className={`rounded-lg p-4 transition-all duration-300 ${
+                      isAlreadyAdded
+                        ? 'bg-slate-900/50 border border-slate-800/50 opacity-60'
+                        : 'bg-slate-800/50 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Globe className={`h-4 w-4 flex-shrink-0 ${isAlreadyAdded ? 'text-slate-600' : 'text-cyan-400'}`} />
+                          <p className={`font-mono text-sm truncate ${isAlreadyAdded ? 'text-slate-500' : 'text-white'}`}>
+                            {cleanDomain(site.siteUrl)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              isAlreadyAdded
+                                ? 'border-slate-700/30 text-slate-600'
+                                : 'border-cyan-500/30 text-cyan-400'
+                            }`}
+                          >
+                            {site.permissionLevel}
+                          </Badge>
+                          {isAlreadyAdded && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-green-500/20 bg-green-500/10 text-green-500 flex items-center gap-1"
+                            >
+                              <Check className="h-3 w-3" />
+                              ON LEADERBOARD
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="text-xs border-cyan-500/30 text-cyan-400"
-                      >
-                        {site.permissionLevel}
-                      </Badge>
-                    </div>
-                    <Button
-                      onClick={() => handleAddSite(site.siteUrl)}
-                      disabled={submitting}
-                      size="sm"
-                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold ml-4"
-                    >
-                      {submitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                      {isAlreadyAdded ? (
+                        <div className="ml-4 px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                          <span className="text-xs font-mono text-slate-600 uppercase tracking-wider">Added</span>
+                        </div>
                       ) : (
-                        'Add'
+                        <Button
+                          onClick={() => handleAddSite(site.siteUrl)}
+                          disabled={submitting}
+                          size="sm"
+                          className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold ml-4 transition-all duration-300 hover:glow-cyan"
+                        >
+                          {submitting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Add'
+                          )}
+                        </Button>
                       )}
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
