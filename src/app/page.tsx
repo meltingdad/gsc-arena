@@ -8,6 +8,8 @@ import { LeaderboardTable } from '@/components/leaderboard-table'
 import { Trophy, Github, Twitter } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
+export const dynamic = 'force-dynamic'
+
 interface LeaderboardEntry {
   id: string
   rank: number
@@ -16,7 +18,7 @@ interface LeaderboardEntry {
   impressions: number
   ctr: number
   position: number
-  lastUpdated: string
+  lastUpdated: Date
 }
 
 export default function Home() {
@@ -30,13 +32,17 @@ export default function Home() {
         const response = await fetch('/api/websites')
         if (response.ok) {
           const result = await response.json()
-          setLeaderboardData(result.data || [])
+          // Convert lastUpdated strings to Date objects
+          const processedData = (result.data || []).map((entry: any) => ({
+            ...entry,
+            lastUpdated: new Date(entry.lastUpdated)
+          }))
+          setLeaderboardData(processedData)
 
           // Find the most recent update time
-          if (result.data && result.data.length > 0) {
-            const latestUpdate = result.data.reduce((latest: Date | null, entry: LeaderboardEntry) => {
-              const entryDate = new Date(entry.lastUpdated)
-              return !latest || entryDate > latest ? entryDate : latest
+          if (processedData.length > 0) {
+            const latestUpdate = processedData.reduce((latest: Date | null, entry: LeaderboardEntry) => {
+              return !latest || entry.lastUpdated > latest ? entry.lastUpdated : latest
             }, null)
             setLastUpdate(latestUpdate)
           }
