@@ -20,6 +20,7 @@ interface Stats {
     ctr: number
     position: number
     lastUpdated: string
+    anonymous: boolean
   } | null
 }
 
@@ -226,7 +227,14 @@ export function Hero() {
                         <div className="flex items-center justify-between pb-4 border-b border-slate-700">
                           <div>
                             <p className="text-xs font-mono text-slate-400 uppercase tracking-wider">Top Performer</p>
-                            <h3 className="text-2xl font-bold text-white mt-1 font-display">{stats.topPerformer.domain}</h3>
+                            <h3 className="text-2xl font-bold text-white mt-1 font-display">
+                              <span className={stats.topPerformer.anonymous ? 'blur-sm select-none' : ''}>
+                                {stats.topPerformer.anonymous ? '••••••••••••' : stats.topPerformer.domain}
+                              </span>
+                              {stats.topPerformer.anonymous && (
+                                <span className="ml-2 text-xs text-purple-400 font-mono">(ANONYMOUS)</span>
+                              )}
+                            </h3>
                           </div>
                           <div className="metallic-gold px-4 py-2 rounded-lg font-black text-slate-900">
                             #1

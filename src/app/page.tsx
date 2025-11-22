@@ -19,6 +19,7 @@ interface LeaderboardEntry {
   ctr: number
   position: number
   lastUpdated: Date
+  anonymous: boolean
 }
 
 export default function Home() {

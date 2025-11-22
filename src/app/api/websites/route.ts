@@ -16,6 +16,7 @@ export async function GET() {
         domain,
         site_url,
         user_id,
+        anonymous,
         metrics (
           id,
           total_clicks,
@@ -46,6 +47,7 @@ export async function GET() {
           ctr: latestMetric.average_ctr,
           position: latestMetric.average_position,
           lastUpdated: latestMetric.last_updated,
+          anonymous: website.anonymous || false,
         }
       })
       .filter(Boolean)
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { siteUrl } = await request.json()
+    const { siteUrl, anonymous = false } = await request.json()
 
     if (!siteUrl) {
       return NextResponse.json({ error: 'Site URL is required' }, { status: 400 })
@@ -161,6 +163,7 @@ export async function POST(request: Request) {
         user_id: user.id,
         domain,
         site_url: siteUrl,
+        anonymous,
       })
       .select()
       .single()

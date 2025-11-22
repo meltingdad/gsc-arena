@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Globe, CheckCircle, AlertCircle, Check, Trash2 } from 'lucide-react'
+import { Loader2, Globe, CheckCircle, AlertCircle, Check, Trash2, EyeOff } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 interface AddWebsiteDialogProps {
@@ -79,7 +79,7 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
     }
   }
 
-  const handleAddSite = async (siteUrl: string) => {
+  const handleAddSite = async (siteUrl: string, isAnonymous: boolean) => {
     setSubmitting(true)
     setError(null)
     setSuccess(false)
@@ -90,7 +90,7 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ siteUrl }),
+        body: JSON.stringify({ siteUrl, anonymous: isAnonymous }),
       })
 
       const data = await response.json()
@@ -276,18 +276,39 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
                           )}
                         </Button>
                       ) : (
-                        <Button
-                          onClick={() => handleAddSite(site.siteUrl)}
-                          disabled={submitting}
-                          size="sm"
-                          className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold ml-4 transition-all duration-300 hover:glow-cyan"
-                        >
-                          {submitting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            'Add'
-                          )}
-                        </Button>
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            onClick={() => handleAddSite(site.siteUrl, false)}
+                            disabled={submitting}
+                            size="sm"
+                            className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold transition-all duration-300 hover:glow-cyan"
+                          >
+                            {submitting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Globe className="h-4 w-4 mr-1" />
+                                Add Publicly
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => handleAddSite(site.siteUrl, true)}
+                            disabled={submitting}
+                            size="sm"
+                            variant="outline"
+                            className="border-2 border-purple-500/50 hover:border-purple-500 hover:bg-purple-500/10 text-purple-400 hover:text-purple-300 font-bold transition-all duration-300"
+                          >
+                            {submitting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <EyeOff className="h-4 w-4 mr-1" />
+                                Add Anonymously
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
