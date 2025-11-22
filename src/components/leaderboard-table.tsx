@@ -165,7 +165,7 @@ export function LeaderboardTable({ data }: LeaderboardTableProps) {
                     <a
                       href={getDomainUrl(entry.domain)}
                       target="_blank"
-                      rel="noopener"
+                      rel="dofollow noopener"
                       className="flex items-center gap-2 truncate hover:text-cyan-400 transition-colors group/link cursor-pointer"
                     >
                       {entry.faviconUrl && (

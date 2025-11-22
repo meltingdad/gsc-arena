@@ -238,7 +238,7 @@ export function Hero() {
                               <a
                                 href={getDomainUrl(stats.topPerformer.domain)}
                                 target="_blank"
-                                rel="noopener"
+                                rel="dofollow noopener"
                                 className="text-2xl font-bold text-white mt-1 font-display flex items-center gap-2 hover:text-cyan-400 transition-colors group/link cursor-pointer"
                               >
                                 {stats.topPerformer.faviconUrl && (
