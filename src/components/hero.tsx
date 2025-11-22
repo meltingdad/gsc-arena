@@ -6,10 +6,39 @@ import { Button } from '@/components/ui/button'
 import { Trophy, Zap, Users, TrendingUp } from 'lucide-react'
 import { AddWebsiteDialog } from './add-website-dialog'
 import type { User } from '@supabase/supabase-js'
+import { formatDistanceToNow } from 'date-fns'
+
+interface Stats {
+  totalSites: number
+  totalClicks: number
+  totalImpressions: number
+  activePlayers: number
+  topPerformer: {
+    domain: string
+    clicks: number
+    impressions: number
+    ctr: number
+    position: number
+    lastUpdated: string
+  } | null
+}
+
+// Format large numbers with K/M suffix
+function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
+}
 
 export function Hero() {
   const [user, setUser] = useState<User | null>(null)
   const [showDialog, setShowDialog] = useState(false)
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
@@ -26,6 +55,28 @@ export function Hero() {
     })
 
     return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    // Fetch stats
+    async function fetchStats() {
+      try {
+        const response = await fetch('/api/stats')
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchStats, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const handleAddWebsite = async () => {
@@ -106,17 +157,35 @@ export function Hero() {
                   <p className="text-xs font-mono text-slate-500 mb-3 uppercase tracking-wider">Live Stats</p>
                   <div className="flex gap-6 font-mono">
                     <div className="space-y-1">
-                      <div className="text-3xl font-bold text-white animate-count-up">0</div>
+                      <div className="text-3xl font-bold text-white animate-count-up">
+                        {loading ? (
+                          <div className="h-9 w-12 bg-slate-800 animate-pulse rounded" />
+                        ) : (
+                          stats?.totalSites || 0
+                        )}
+                      </div>
                       <div className="text-xs text-slate-400 uppercase tracking-wide">Sites Competing</div>
                     </div>
                     <div className="w-px bg-slate-700" />
                     <div className="space-y-1 delay-200">
-                      <div className="text-3xl font-bold text-cyan-400 animate-count-up delay-200">0M</div>
+                      <div className="text-3xl font-bold text-cyan-400 animate-count-up delay-200">
+                        {loading ? (
+                          <div className="h-9 w-16 bg-slate-800 animate-pulse rounded" />
+                        ) : (
+                          formatNumber(stats?.totalClicks || 0)
+                        )}
+                      </div>
                       <div className="text-xs text-slate-400 uppercase tracking-wide">Total Clicks</div>
                     </div>
                     <div className="w-px bg-slate-700" />
                     <div className="space-y-1">
-                      <div className="text-3xl font-bold text-purple-400 animate-count-up delay-300">0</div>
+                      <div className="text-3xl font-bold text-purple-400 animate-count-up delay-300">
+                        {loading ? (
+                          <div className="h-9 w-12 bg-slate-800 animate-pulse rounded" />
+                        ) : (
+                          stats?.activePlayers || 0
+                        )}
+                      </div>
                       <div className="text-xs text-slate-400 uppercase tracking-wide">Active Players</div>
                     </div>
                   </div>
@@ -131,50 +200,80 @@ export function Hero() {
 
                   {/* Main card */}
                   <div className="relative bg-slate-800/90 border border-slate-700 rounded-2xl p-8 backdrop-blur-sm scan-lines">
-                    <div className="space-y-6">
-                      {/* Card Header */}
-                      <div className="flex items-center justify-between pb-4 border-b border-slate-700">
-                        <div>
-                          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider">Top Performer</p>
-                          <h3 className="text-2xl font-bold text-white mt-1 font-display">example.com</h3>
-                        </div>
-                        <div className="metallic-gold px-4 py-2 rounded-lg font-black text-slate-900">
-                          #1
-                        </div>
-                      </div>
-
-                      {/* Metrics Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                          <div className="flex items-center gap-2 text-cyan-400 mb-2">
-                            <TrendingUp className="h-4 w-4" />
-                            <span className="text-xs font-mono uppercase">Clicks</span>
+                    {loading || !stats?.topPerformer ? (
+                      // Loading skeleton
+                      <div className="space-y-6 animate-pulse">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+                          <div className="space-y-2">
+                            <div className="h-3 w-24 bg-slate-700 rounded" />
+                            <div className="h-7 w-40 bg-slate-700 rounded" />
                           </div>
-                          <div className="text-2xl font-bold text-white font-mono">125.4K</div>
+                          <div className="h-12 w-16 bg-slate-700 rounded-lg" />
                         </div>
-                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                          <div className="flex items-center gap-2 text-purple-400 mb-2">
-                            <Users className="h-4 w-4" />
-                            <span className="text-xs font-mono uppercase">Impressions</span>
+                        <div className="grid grid-cols-2 gap-4">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                              <div className="h-4 w-16 bg-slate-700 rounded mb-2" />
+                              <div className="h-7 w-20 bg-slate-700 rounded" />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="h-4 w-32 bg-slate-700 rounded" />
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Card Header */}
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+                          <div>
+                            <p className="text-xs font-mono text-slate-400 uppercase tracking-wider">Top Performer</p>
+                            <h3 className="text-2xl font-bold text-white mt-1 font-display">{stats.topPerformer.domain}</h3>
                           </div>
-                          <div className="text-2xl font-bold text-white font-mono">3.5M</div>
+                          <div className="metallic-gold px-4 py-2 rounded-lg font-black text-slate-900">
+                            #1
+                          </div>
                         </div>
-                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                          <div className="text-xs font-mono text-slate-400 mb-2 uppercase">CTR</div>
-                          <div className="text-2xl font-bold text-green-400 font-mono">3.54%</div>
-                        </div>
-                        <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                          <div className="text-xs font-mono text-slate-400 mb-2 uppercase">Position</div>
-                          <div className="text-2xl font-bold text-amber-400 font-mono">12.3</div>
-                        </div>
-                      </div>
 
-                      {/* Pulse indicator */}
-                      <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                        <span>UPDATED 2 MIN AGO</span>
+                        {/* Metrics Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                            <div className="flex items-center gap-2 text-cyan-400 mb-2">
+                              <TrendingUp className="h-4 w-4" />
+                              <span className="text-xs font-mono uppercase">Clicks</span>
+                            </div>
+                            <div className="text-2xl font-bold text-white font-mono">
+                              {formatNumber(stats.topPerformer.clicks)}
+                            </div>
+                          </div>
+                          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                            <div className="flex items-center gap-2 text-purple-400 mb-2">
+                              <Users className="h-4 w-4" />
+                              <span className="text-xs font-mono uppercase">Impressions</span>
+                            </div>
+                            <div className="text-2xl font-bold text-white font-mono">
+                              {formatNumber(stats.topPerformer.impressions)}
+                            </div>
+                          </div>
+                          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                            <div className="text-xs font-mono text-slate-400 mb-2 uppercase">CTR</div>
+                            <div className="text-2xl font-bold text-green-400 font-mono">
+                              {stats.topPerformer.ctr.toFixed(2)}%
+                            </div>
+                          </div>
+                          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                            <div className="text-xs font-mono text-slate-400 mb-2 uppercase">Position</div>
+                            <div className="text-2xl font-bold text-amber-400 font-mono">
+                              {stats.topPerformer.position.toFixed(1)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Pulse indicator */}
+                        <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                          <span>UPDATED {formatDistanceToNow(new Date(stats.topPerformer.lastUpdated), { addSuffix: true }).toUpperCase()}</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Floating accent elements */}

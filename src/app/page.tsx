@@ -1,65 +1,59 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/navbar'
 import { Hero } from '@/components/hero'
 import { HowItWorks } from '@/components/how-it-works'
 import { LeaderboardTable } from '@/components/leaderboard-table'
 import { Trophy, Github, Twitter } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
 
-// Mock data for demonstration
-// This will be replaced with real data from Supabase
-const mockLeaderboardData = [
-  {
-    id: '1',
-    rank: 1,
-    domain: 'example.com',
-    clicks: 125430,
-    impressions: 3542100,
-    ctr: 3.54,
-    position: 12.3,
-    lastUpdated: new Date('2025-11-22T10:00:00'),
-  },
-  {
-    id: '2',
-    rank: 2,
-    domain: 'sample-site.io',
-    clicks: 98250,
-    impressions: 2876540,
-    ctr: 3.42,
-    position: 15.7,
-    lastUpdated: new Date('2025-11-22T09:30:00'),
-  },
-  {
-    id: '3',
-    rank: 3,
-    domain: 'demo-website.com',
-    clicks: 87690,
-    impressions: 2543200,
-    ctr: 3.45,
-    position: 14.2,
-    lastUpdated: new Date('2025-11-22T08:45:00'),
-  },
-  {
-    id: '4',
-    rank: 4,
-    domain: 'test-blog.net',
-    clicks: 65420,
-    impressions: 1987650,
-    ctr: 3.29,
-    position: 18.5,
-    lastUpdated: new Date('2025-11-22T07:20:00'),
-  },
-  {
-    id: '5',
-    rank: 5,
-    domain: 'myawesomesite.org',
-    clicks: 54320,
-    impressions: 1654320,
-    ctr: 3.28,
-    position: 19.1,
-    lastUpdated: new Date('2025-11-22T06:15:00'),
-  },
-]
+interface LeaderboardEntry {
+  id: string
+  rank: number
+  domain: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+  lastUpdated: string
+}
 
 export default function Home() {
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      try {
+        const response = await fetch('/api/websites')
+        if (response.ok) {
+          const result = await response.json()
+          setLeaderboardData(result.data || [])
+
+          // Find the most recent update time
+          if (result.data && result.data.length > 0) {
+            const latestUpdate = result.data.reduce((latest: Date | null, entry: LeaderboardEntry) => {
+              const entryDate = new Date(entry.lastUpdated)
+              return !latest || entryDate > latest ? entryDate : latest
+            }, null)
+            setLastUpdate(latestUpdate)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch leaderboard:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLeaderboard()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchLeaderboard, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -94,7 +88,32 @@ export default function Home() {
 
             {/* Leaderboard */}
             <div className="max-w-7xl mx-auto">
-              <LeaderboardTable data={mockLeaderboardData} />
+              {loading ? (
+                // Loading skeleton
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className="h-20 bg-slate-800/50 border border-slate-700 rounded-xl animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : leaderboardData.length === 0 ? (
+                // Empty state
+                <div className="text-center py-20">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border border-slate-700 mb-6">
+                    <Trophy className="h-8 w-8 text-slate-600" />
+                  </div>
+                  <h3 className="text-2xl font-display font-bold text-white mb-2">
+                    No Competitors Yet
+                  </h3>
+                  <p className="text-slate-400 mb-8">
+                    Be the first to enter the arena and claim the top spot!
+                  </p>
+                </div>
+              ) : (
+                <LeaderboardTable data={leaderboardData} />
+              )}
             </div>
 
             {/* Update Info */}
@@ -102,11 +121,17 @@ export default function Home() {
               <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-800/50 border border-slate-700 rounded-full backdrop-blur-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="font-mono text-xs text-slate-400 uppercase">Auto-Refresh: 24h</span>
+                  <span className="font-mono text-xs text-slate-400 uppercase">Auto-Refresh: 30s</span>
                 </div>
                 <div className="w-px h-4 bg-slate-600" />
                 <span className="font-mono text-xs text-slate-500">
-                  Last update: {new Date().toLocaleTimeString()}
+                  {loading ? (
+                    'Loading...'
+                  ) : lastUpdate ? (
+                    `Last update: ${formatDistanceToNow(lastUpdate, { addSuffix: true })}`
+                  ) : (
+                    'No updates yet'
+                  )}
                 </span>
               </div>
             </div>
