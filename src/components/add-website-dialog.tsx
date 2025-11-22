@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { cleanDomain } from '@/lib/utils/domain'
 import {
   Dialog,
   DialogContent,
@@ -172,7 +173,7 @@ export function AddWebsiteDialog({ open, onOpenChange, user }: AddWebsiteDialogP
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <Globe className="h-4 w-4 text-cyan-400 flex-shrink-0" />
-                        <p className="font-mono text-sm text-white truncate">{site.siteUrl}</p>
+                        <p className="font-mono text-sm text-white truncate">{cleanDomain(site.siteUrl)}</p>
                       </div>
                       <Badge
                         variant="outline"

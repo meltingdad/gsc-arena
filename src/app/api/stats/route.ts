@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { cleanDomain } from '@/lib/utils/domain'
 
 export async function GET() {
   try {
@@ -60,7 +61,7 @@ export async function GET() {
       if (latestMetric && latestMetric.total_clicks > maxClicks) {
         maxClicks = latestMetric.total_clicks
         topPerformer = {
-          domain: website.domain,
+          domain: cleanDomain(website.domain),
           clicks: latestMetric.total_clicks,
           impressions: latestMetric.total_impressions,
           ctr: latestMetric.average_ctr,

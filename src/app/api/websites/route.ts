@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { google } from 'googleapis'
+import { extractDomain, cleanDomain } from '@/lib/utils/domain'
 
 // Get all websites for leaderboard
 export async function GET() {
@@ -39,7 +40,7 @@ export async function GET() {
 
         return {
           id: website.id,
-          domain: website.domain,
+          domain: cleanDomain(website.domain),
           clicks: latestMetric.total_clicks,
           impressions: latestMetric.total_impressions,
           ctr: latestMetric.average_ctr,
@@ -82,8 +83,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Site URL is required' }, { status: 400 })
     }
 
-    // Extract domain from siteUrl
-    const domain = siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+    // Extract clean domain from siteUrl (removes sc-domain:, https://, www., etc.)
+    const domain = extractDomain(siteUrl)
 
     // Check if website already exists
     const { data: existingWebsite } = await supabase
